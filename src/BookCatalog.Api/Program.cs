@@ -1,4 +1,8 @@
+using BookCatalog.Api.Configuration;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSolutionInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
