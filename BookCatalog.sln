@@ -1,8 +1,34 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BookCatalog.Api", "src\BookCatalog.Api\BookCatalog.Api.csproj", "{44CCB11F-7FFB-449D-8C16-C5026B126092}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BookCatalog.Application", "src\BookCatalog.Application\BookCatalog.Application.csproj", "{E1C481AB-B255-4792-9EA7-085A9942B68F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BookCatalog.Infrastructure", "src\BookCatalog.Infrastructure\BookCatalog.Infrastructure.csproj", "{5DCF2338-0995-4A62-B764-0C7262BD191D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BookCatalog.Domain", "src\BookCatalog.Domain\BookCatalog.Domain.csproj", "{A81E90AC-FCD3-43B6-9C92-950DF24461A1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{44CCB11F-7FFB-449D-8C16-C5026B126092}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44CCB11F-7FFB-449D-8C16-C5026B126092}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44CCB11F-7FFB-449D-8C16-C5026B126092}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44CCB11F-7FFB-449D-8C16-C5026B126092}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1C481AB-B255-4792-9EA7-085A9942B68F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1C481AB-B255-4792-9EA7-085A9942B68F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1C481AB-B255-4792-9EA7-085A9942B68F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1C481AB-B255-4792-9EA7-085A9942B68F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5DCF2338-0995-4A62-B764-0C7262BD191D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5DCF2338-0995-4A62-B764-0C7262BD191D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5DCF2338-0995-4A62-B764-0C7262BD191D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5DCF2338-0995-4A62-B764-0C7262BD191D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A81E90AC-FCD3-43B6-9C92-950DF24461A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A81E90AC-FCD3-43B6-9C92-950DF24461A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A81E90AC-FCD3-43B6-9C92-950DF24461A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A81E90AC-FCD3-43B6-9C92-950DF24461A1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
