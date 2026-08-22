@@ -1,5 +1,7 @@
 ﻿using BookCatalog.Application;
+using BookCatalog.Application.Interfaces.Repositories;
 using BookCatalog.Infrastructure;
+using BookCatalog.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BookCatalog.Api.Configuration;
@@ -11,6 +13,7 @@ public static class ServicesCollectionExtension
         IConfiguration configuration)
     {
         AddEfCore(services, configuration);
+        AddRepositories(services);
         
         AddMediatR(services, configuration);
         
@@ -41,5 +44,10 @@ public static class ServicesCollectionExtension
     public static void AddAutomapperProfiles(this IServiceCollection services)
     {
         services.AddAutoMapper(_ => { }, typeof(ApplicationAssemblyMarker));
+    }
+    
+    public static void AddRepositories(IServiceCollection services)
+    {
+        services.AddScoped<IBookRepository, BookRepository>();
     }
 }

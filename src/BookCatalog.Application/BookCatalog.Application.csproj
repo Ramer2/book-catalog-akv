@@ -17,11 +17,8 @@
 
     <ItemGroup>
       <Folder Include="Handlers\Book\Command\" />
-      <Folder Include="Handlers\Book\Query\" />
       <Folder Include="Requests\Book\Command\" />
-      <Folder Include="Requests\Book\Query\" />
       <Folder Include="Responses\Book\Command\" />
-      <Folder Include="Responses\Book\Query\" />
     </ItemGroup>
 
 </Project>
