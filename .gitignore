@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 
 # configs
 appsettings.json
+
+# sqlite test db
+temp.db*

@@ -1,4 +1,8 @@
-﻿using BookCatalog.Infrastructure;
+﻿using BookCatalog.Application;
+using BookCatalog.Application.Interfaces.Repositories;
+using BookCatalog.Application.Services.Book;
+using BookCatalog.Infrastructure;
+using BookCatalog.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BookCatalog.Api.Configuration;
@@ -10,6 +14,14 @@ public static class ServicesCollectionExtension
         IConfiguration configuration)
     {
         AddEfCore(services, configuration);
+        AddRepositories(services);
+        
+        AddServices(services);
+        
+        AddMediatR(services, configuration);
+        
+        AddAutomapperProfiles(services);
+        
         return services;
     }
 
@@ -18,9 +30,32 @@ public static class ServicesCollectionExtension
         // var connectionString = configuration.GetConnectionString("DbConnection");
         services.AddDbContext<BookCatalogDbContext>(options =>
         {
-            options.UseSqlite("Data Source=temp.db"); 
+            options.UseSqlite("Data Source=temp.db");
         });
     }
     
+    public static void AddMediatR(IServiceCollection services, IConfiguration configuration)
+    {
+        var mediatRLicense = configuration.GetSection("MediatRLicense").Value;
+        services.AddMediatR(cfg =>
+        {
+            cfg.LicenseKey = mediatRLicense;
+            cfg.RegisterServicesFromAssembly(typeof(ApplicationAssemblyMarker).Assembly);
+        });
+    }
     
+    public static void AddAutomapperProfiles(this IServiceCollection services)
+    {
+        services.AddAutoMapper(_ => { }, typeof(ApplicationAssemblyMarker));
+    }
+    
+    public static void AddRepositories(IServiceCollection services)
+    {
+        services.AddScoped<IBookRepository, BookRepository>();
+    }
+    
+    public static void AddServices(IServiceCollection services)
+    {
+        services.AddScoped<IBookService, BookService>();
+    }
 }
