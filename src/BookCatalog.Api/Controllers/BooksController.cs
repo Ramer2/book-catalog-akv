@@ -1,4 +1,5 @@
-﻿using BookCatalog.Application.Requests.Book.Command;
+﻿using BookCatalog.Application.Exceptions;
+using BookCatalog.Application.Requests.Book.Command;
 using BookCatalog.Application.Requests.Book.Query;
 using BookCatalog.Domain.Exceptions;
 using MediatR;
@@ -54,7 +55,15 @@ public class BooksController : ControllerBase
     [HttpPost("")]
     public async Task<IActionResult> CreateBook([FromBody] CreateBookCommand command, CancellationToken cancellationToken)
     {
-        return Ok(await _mediator.Send(command, cancellationToken));
+        // temporarily
+        try
+        {
+            return Ok(await _mediator.Send(command, cancellationToken));
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(ex.Errors);
+        }
     }
 
     [HttpPut("{id:guid}")]
@@ -70,6 +79,10 @@ public class BooksController : ControllerBase
         catch (EntityNotFoundException ex)
         {
             return NotFound(ex.Message);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(ex.Errors);
         }
     }
 
