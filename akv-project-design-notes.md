@@ -13,3 +13,7 @@ I did this to improve and futureproof future development.
 
 `appsettings.json` is included into `.gitignore`.
 
+### Data Storage
+Temporarily I am using Sqlite in-memory database. I intend to use Postgres when Docker is going to be set up.
+
+Repositories use a common `IRepository` interface as a generic base template.
