@@ -10,4 +10,18 @@
       <ProjectReference Include="..\BookCatalog.Domain\BookCatalog.Domain.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="AutoMapper" Version="16.2.0" />
+      <PackageReference Include="MediatR" Version="14.2.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Handlers\Book\Command\" />
+      <Folder Include="Handlers\Book\Query\" />
+      <Folder Include="Requests\Book\Command\" />
+      <Folder Include="Requests\Book\Query\" />
+      <Folder Include="Responses\Book\Command\" />
+      <Folder Include="Responses\Book\Query\" />
+    </ItemGroup>
+
 </Project>
