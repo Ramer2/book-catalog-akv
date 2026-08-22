@@ -1,5 +1,6 @@
 ﻿using BookCatalog.Application;
 using BookCatalog.Application.Interfaces.Repositories;
+using BookCatalog.Application.Services.Book;
 using BookCatalog.Infrastructure;
 using BookCatalog.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,8 @@ public static class ServicesCollectionExtension
     {
         AddEfCore(services, configuration);
         AddRepositories(services);
+        
+        AddServices(services);
         
         AddMediatR(services, configuration);
         
@@ -49,5 +52,10 @@ public static class ServicesCollectionExtension
     public static void AddRepositories(IServiceCollection services)
     {
         services.AddScoped<IBookRepository, BookRepository>();
+    }
+    
+    public static void AddServices(IServiceCollection services)
+    {
+        services.AddScoped<IBookService, BookService>();
     }
 }
