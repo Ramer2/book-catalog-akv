@@ -1,8 +1,11 @@
 ﻿using BookCatalog.Application;
+using BookCatalog.Application.Behaviors;
 using BookCatalog.Application.Interfaces.Repositories;
 using BookCatalog.Application.Services.Book;
 using BookCatalog.Infrastructure;
 using BookCatalog.Infrastructure.Repositories;
+using FluentValidation;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace BookCatalog.Api.Configuration;
@@ -19,6 +22,8 @@ public static class ServicesCollectionExtension
         AddServices(services);
         
         AddMediatR(services, configuration);
+        
+        AddValidators(services);
         
         AddAutomapperProfiles(services);
         
@@ -42,6 +47,12 @@ public static class ServicesCollectionExtension
             cfg.LicenseKey = mediatRLicense;
             cfg.RegisterServicesFromAssembly(typeof(ApplicationAssemblyMarker).Assembly);
         });
+    }
+    
+    public static void AddValidators(IServiceCollection services)
+    {
+        services.AddValidatorsFromAssembly(typeof(ApplicationAssemblyMarker).Assembly);
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
     }
     
     public static void AddAutomapperProfiles(this IServiceCollection services)
