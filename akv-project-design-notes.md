@@ -24,5 +24,16 @@ For managing request flows I will use CQRS pattern using MediatR. The main advan
 ### Validation
 Validation is performed using a FluentValidation library, with validators being built-into the MediatR's pipeline using Behavior.
 
+### Logging
+Added `GlobalExceptionHandler` to handle all the errors and for easier logging of said errors.
+Also, requests are logged using a `LoggingBehavior` Behavior in the MediatR pipeline.
+
 ### Additional tools
 AutoMapper - reduces the burden of mapping from one class to another (for example, with DTOs).
+
+### Things to improve
+I would love to use Docker for easier environment management and not having to deal with "oh, you have two dotnet versions on your PC, and I can see only one. good luck".
+
+Database is also a bit lackluster, PostgreSQL would be easier to interact with.
+
+For error handling I think I will move to using filters, although I am still considering this.

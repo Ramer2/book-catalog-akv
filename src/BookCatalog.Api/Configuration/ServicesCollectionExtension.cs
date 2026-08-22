@@ -23,6 +23,8 @@ public static class ServicesCollectionExtension
         
         AddMediatR(services, configuration);
         
+        AddLogging(services);
+        
         AddValidators(services);
         
         AddAutomapperProfiles(services);
@@ -53,6 +55,11 @@ public static class ServicesCollectionExtension
     {
         services.AddValidatorsFromAssembly(typeof(ApplicationAssemblyMarker).Assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+    }
+    
+    public static void AddLogging(IServiceCollection services)
+    {
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
     }
     
     public static void AddAutomapperProfiles(this IServiceCollection services)
