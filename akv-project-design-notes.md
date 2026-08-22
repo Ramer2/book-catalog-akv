@@ -21,5 +21,8 @@ Repositories use a common `IRepository` interface as a generic base template.
 ### Request Flow
 For managing request flows I will use CQRS pattern using MediatR. The main advantage for me is ability to integrate automatic validation checks into the MediatR's pipeline.
 
+### Validation
+Validation is performed using a FluentValidation library, with validators being built-into the MediatR's pipeline using Behavior.
+
 ### Additional tools
 AutoMapper - reduces the burden of mapping from one class to another (for example, with DTOs).
