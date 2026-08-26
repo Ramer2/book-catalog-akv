@@ -34,7 +34,7 @@ public static class ServicesCollectionExtension
 
         return services;
     }
-    
+
     public static void AddExceptionFilters(IServiceCollection services)
     {
         services.AddControllers(options =>
