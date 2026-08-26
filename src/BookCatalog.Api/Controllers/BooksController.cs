@@ -21,7 +21,7 @@ public class BooksController : ControllerBase
     {
         return Ok(await _mediator.Send(query, cancellationToken));
     }
-    
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetAllBooks([FromRoute] Guid id, CancellationToken cancellationToken)
     {

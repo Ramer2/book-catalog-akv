@@ -1,21 +1,29 @@
 using BookCatalog.Application.Requests.Book.Command;
+using BookCatalog.Application.Services.Isbn;
 using FluentValidation;
 
 namespace BookCatalog.Application.Validators.Book.Command;
 
 public class UpdateBookByIdCommandValidator : AbstractValidator<UpdateBookByIdCommand>
 {
-    public UpdateBookByIdCommandValidator()
+    private readonly IIsbnService _isbnService;
+
+    public UpdateBookByIdCommandValidator(IIsbnService isbnService)
     {
+        _isbnService = isbnService;
+
         RuleFor(x => x.Id)
             .NotEqual(Guid.Empty)
             .WithMessage("Id is required.");
 
         RuleFor(x => x.Isbn)
+            .Cascade(CascadeMode.Stop)
             .NotEmpty()
             .WithMessage("ISBN is required.")
             .Length(10, 13)
-            .WithMessage("ISBN must be between 10 and 13 characters long.");
+            .WithMessage("ISBN must be between 10 and 13 characters long.")
+            .MustAsync((cmd, isbn, ct) => _isbnService.EnsureIsbnUniqueAsync(isbn, cmd.Id, ct))
+            .WithMessage("ISBN is already taken.");
 
         RuleFor(x => x.Title)
             .NotEmpty()
