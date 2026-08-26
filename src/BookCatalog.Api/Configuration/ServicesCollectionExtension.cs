@@ -1,4 +1,5 @@
-﻿using BookCatalog.Application;
+﻿using BookCatalog.Api.ExceptionHandling.Filters;
+using BookCatalog.Application;
 using BookCatalog.Application.Behaviors;
 using BookCatalog.Application.Interfaces.Repositories;
 using BookCatalog.Application.Services.Book;
@@ -17,6 +18,7 @@ public static class ServicesCollectionExtension
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        AddExceptionFilters(services);
         AddEfCore(services, configuration);
         AddRepositories(services);
 
@@ -31,6 +33,16 @@ public static class ServicesCollectionExtension
         AddAutomapperProfiles(services);
 
         return services;
+    }
+    
+    public static void AddExceptionFilters(IServiceCollection services)
+    {
+        services.AddControllers(options =>
+        {
+            options.Filters.Add<UnhandledExceptionFilter>();
+            options.Filters.Add<NotFoundExceptionFilter>();
+            options.Filters.Add<ValidationExceptionFilter>();
+        });
     }
 
     public static void AddEfCore(IServiceCollection services, IConfiguration configuration)
