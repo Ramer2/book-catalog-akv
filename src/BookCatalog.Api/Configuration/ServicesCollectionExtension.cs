@@ -2,6 +2,7 @@
 using BookCatalog.Application.Behaviors;
 using BookCatalog.Application.Interfaces.Repositories;
 using BookCatalog.Application.Services.Book;
+using BookCatalog.Application.Services.Isbn;
 using BookCatalog.Infrastructure;
 using BookCatalog.Infrastructure.Repositories;
 using FluentValidation;
@@ -75,5 +76,6 @@ public static class ServicesCollectionExtension
     public static void AddServices(IServiceCollection services)
     {
         services.AddScoped<IBookService, BookService>();
+        services.AddScoped<IIsbnService, IsbnService>();
     }
 }

@@ -1,17 +1,25 @@
 using BookCatalog.Application.Requests.Book.Command;
+using BookCatalog.Application.Services.Isbn;
 using FluentValidation;
 
 namespace BookCatalog.Application.Validators.Book.Command;
 
 public class CreateBookCommandValidator : AbstractValidator<CreateBookCommand>
 {
-    public CreateBookCommandValidator()
+    private readonly IIsbnService _isbnService;
+
+    public CreateBookCommandValidator(IIsbnService isbnService)
     {
+        _isbnService = isbnService;
+
         RuleFor(x => x.Isbn)
+            .Cascade(CascadeMode.Stop)
             .NotEmpty()
             .WithMessage("ISBN is required.")
             .Length(10, 13)
-            .WithMessage("ISBN must be between 10 and 13 characters long.");
+            .WithMessage("ISBN must be between 10 and 13 characters long.")
+            .MustAsync((isbn, ct) => _isbnService.EnsureIsbnUniqueAsync(isbn, null, ct))
+            .WithMessage("ISBN is already taken.");
 
         RuleFor(x => x.Title)
             .NotEmpty()
