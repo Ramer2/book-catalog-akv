@@ -10,21 +10,21 @@ public class BookConfiguration : IEntityTypeConfiguration<Book>
     {
         builder
             .HasKey(x => x.Id);
-        
+
         builder
             .Property(x => x.Id)
             .ValueGeneratedOnAdd();
-        
+
         builder
             .Property(x => x.Title)
             .HasMaxLength(100)
             .IsRequired();
-        
+
         builder
             .Property(x => x.Author)
             .HasMaxLength(100)
             .IsRequired();
-        
+
         builder
             .Property(x => x.Isbn)
             .HasMaxLength(13)

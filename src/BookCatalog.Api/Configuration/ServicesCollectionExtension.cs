@@ -19,17 +19,17 @@ public static class ServicesCollectionExtension
     {
         AddEfCore(services, configuration);
         AddRepositories(services);
-        
+
         AddServices(services);
-        
+
         AddMediatR(services, configuration);
-        
+
         AddLogging(services);
-        
+
         AddValidators(services);
-        
+
         AddAutomapperProfiles(services);
-        
+
         return services;
     }
 
@@ -41,7 +41,7 @@ public static class ServicesCollectionExtension
             options.UseSqlite("Data Source=temp.db");
         });
     }
-    
+
     public static void AddMediatR(IServiceCollection services, IConfiguration configuration)
     {
         var mediatRLicense = configuration.GetSection("MediatRLicense").Value;
@@ -51,28 +51,28 @@ public static class ServicesCollectionExtension
             cfg.RegisterServicesFromAssembly(typeof(ApplicationAssemblyMarker).Assembly);
         });
     }
-    
+
     public static void AddValidators(IServiceCollection services)
     {
         services.AddValidatorsFromAssembly(typeof(ApplicationAssemblyMarker).Assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
     }
-    
+
     public static void AddLogging(IServiceCollection services)
     {
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
     }
-    
+
     public static void AddAutomapperProfiles(this IServiceCollection services)
     {
         services.AddAutoMapper(_ => { }, typeof(ApplicationAssemblyMarker));
     }
-    
+
     public static void AddRepositories(IServiceCollection services)
     {
         services.AddScoped<IBookRepository, BookRepository>();
     }
-    
+
     public static void AddServices(IServiceCollection services)
     {
         services.AddScoped<IBookService, BookService>();
