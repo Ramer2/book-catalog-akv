@@ -1,0 +1,200 @@
+using BookCatalog.Application.Services.Isbn;
+using BookCatalog.Application.Validators.Book.Command;
+using BookCatalog.Tests.TestUtils;
+using FluentValidation.TestHelper;
+
+namespace BookCatalog.Tests.Validators;
+
+[TestFixture]
+[Category("Validation")]
+public class UpdateBookByIdCommandValidatorTests
+{
+    private Mock<IIsbnService> _isbnService = null!;
+    private UpdateBookByIdCommandValidator _sut = null!;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _isbnService = new Mock<IIsbnService>(MockBehavior.Strict);
+        _isbnService
+            .Setup(s => s.EnsureIsbnUniqueAsync(
+                It.IsAny<string>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        _sut = new UpdateBookByIdCommandValidator(_isbnService.Object);
+    }
+
+    [Test]
+    public async Task Should_PassValidation_When_CommandIsFullyValid()
+    {
+        var command = BookFaker.UpdateCommand();
+
+        var result = await _sut.TestValidateAsync(command);
+
+        result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Test]
+    public async Task Id_Should_HaveRequiredError_When_Empty()
+    {
+        var command = BookFaker.UpdateCommand(id: Guid.Empty);
+
+        var result = await _sut.TestValidateAsync(command);
+
+        result.ShouldHaveValidationErrorFor(x => x.Id)
+            .WithErrorMessage("Id is required.");
+    }
+
+    [Test]
+    public async Task Isbn_Should_HaveRequiredError_When_Empty()
+    {
+        var command = BookFaker.UpdateCommand(isbn: string.Empty);
+
+        var result = await _sut.TestValidateAsync(command);
+
+        result.ShouldHaveValidationErrorFor(x => x.Isbn)
+            .WithErrorMessage("ISBN is required.");
+    }
+
+    [TestCase(9, TestName = "Isbn length 9 is rejected (below minimum)")]
+    [TestCase(14, TestName = "Isbn length 14 is rejected (above maximum)")]
+    public async Task Isbn_Should_HaveLengthError_When_OutsideAllowedRange(int length)
+    {
+        var command = BookFaker.UpdateCommand(isbn: new string('1', length));
+
+        var result = await _sut.TestValidateAsync(command);
+
+        result.ShouldHaveValidationErrorFor(x => x.Isbn)
+            .WithErrorMessage("ISBN must be between 10 and 13 characters long.");
+    }
+
+    [Test]
+    public async Task Isbn_Should_NotInvokeUniquenessCheck_When_LengthIsInvalid()
+    {
+        var command = BookFaker.UpdateCommand(isbn: "123");
+
+        await _sut.TestValidateAsync(command);
+
+        _isbnService.Verify(
+            s => s.EnsureIsbnUniqueAsync(
+                It.IsAny<string>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never,
+            "CascadeMode.Stop must prevent the async uniqueness check when Length fails");
+    }
+
+    [Test]
+    public async Task Isbn_Should_HaveTakenError_When_UniquenessCheckReturnsFalse()
+    {
+        var command = BookFaker.UpdateCommand();
+        _isbnService
+            .Setup(s => s.EnsureIsbnUniqueAsync(
+                command.Isbn,
+                command.Id,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await _sut.TestValidateAsync(command);
+
+        result.ShouldHaveValidationErrorFor(x => x.Isbn)
+            .WithErrorMessage("ISBN is already taken.");
+    }
+
+    [Test]
+    public async Task Isbn_Should_InvokeUniquenessCheck_WithCommandIdAsExcludeBookId()
+    {
+        var command = BookFaker.UpdateCommand();
+
+        await _sut.TestValidateAsync(command);
+
+        _isbnService.Verify(
+            s => s.EnsureIsbnUniqueAsync(
+                command.Isbn,
+                command.Id,
+                It.IsAny<CancellationToken>()),
+            Times.Once,
+            "UpdateBookByIdCommandValidator must call EnsureIsbnUniqueAsync with excludeBookId=cmd.Id " +
+            "so unchanged-ISBN updates are not flagged as duplicates");
+    }
+
+    [Test]
+    public async Task Title_Should_HaveRequiredError_When_Empty()
+    {
+        var command = BookFaker.UpdateCommand(title: string.Empty);
+
+        var result = await _sut.TestValidateAsync(command);
+
+        result.ShouldHaveValidationErrorFor(x => x.Title)
+            .WithErrorMessage("Title is required.");
+    }
+
+    [Test]
+    public async Task Title_Should_HaveLengthError_When_Exceeds256Characters()
+    {
+        var command = BookFaker.UpdateCommand(title: new string('t', 257));
+
+        var result = await _sut.TestValidateAsync(command);
+
+        result.ShouldHaveValidationErrorFor(x => x.Title)
+            .WithErrorMessage("Title must not exceed 256 characters.");
+    }
+
+    [Test]
+    public async Task Author_Should_HaveRequiredError_When_Empty()
+    {
+        var command = BookFaker.UpdateCommand(author: string.Empty);
+
+        var result = await _sut.TestValidateAsync(command);
+
+        result.ShouldHaveValidationErrorFor(x => x.Author)
+            .WithErrorMessage("Author is required.");
+    }
+
+    [Test]
+    public async Task Author_Should_HaveLengthError_When_Exceeds256Characters()
+    {
+        var command = BookFaker.UpdateCommand(author: new string('a', 257));
+
+        var result = await _sut.TestValidateAsync(command);
+
+        result.ShouldHaveValidationErrorFor(x => x.Author)
+            .WithErrorMessage("Author must not exceed 256 characters.");
+    }
+
+    [TestCase(0, TestName = "NumberOfPages 0 is rejected")]
+    [TestCase(-1, TestName = "NumberOfPages -1 is rejected")]
+    public async Task NumberOfPages_Should_HaveError_When_NotPositive(int pages)
+    {
+        var command = BookFaker.UpdateCommand(numberOfPages: pages);
+
+        var result = await _sut.TestValidateAsync(command);
+
+        result.ShouldHaveValidationErrorFor(x => x.NumberOfPages)
+            .WithErrorMessage("Number of pages must be greater than 0.");
+    }
+
+    [Test]
+    public async Task PublishDate_Should_HaveError_When_InTheFuture()
+    {
+        var command = BookFaker.UpdateCommand(publishDate: DateTime.UtcNow.AddDays(1));
+
+        var result = await _sut.TestValidateAsync(command);
+
+        result.ShouldHaveValidationErrorFor(x => x.PublishDate)
+            .WithErrorMessage("Publish date cannot be in the future.");
+    }
+
+    [Test]
+    public async Task PublishDate_Should_NotHaveError_When_Null()
+    {
+        var command = BookFaker.UpdateCommand();
+        command.PublishDate = null;
+
+        var result = await _sut.TestValidateAsync(command);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.PublishDate);
+    }
+}
