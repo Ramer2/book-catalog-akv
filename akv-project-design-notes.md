@@ -42,3 +42,6 @@ For error handling I think I will move to using filters, although I am still con
 
 ### Unit Tests
 I use NUnit3 and Moq to test validation errors, services, handlers, business logic.
+
+### Exception handling
+Is done using API filters. Logs are created on every error caught.
