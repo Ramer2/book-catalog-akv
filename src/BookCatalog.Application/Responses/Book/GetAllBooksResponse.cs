@@ -1,6 +1,7 @@
-﻿namespace BookCatalog.Application.Responses.Book;
+﻿using BookCatalog.Domain.Pagination;
 
-public class GetAllBooksResponse
+namespace BookCatalog.Application.Responses.Book;
+
+public class GetAllBooksResponse : BaseSearchModelPagedResponse<BookResponse>
 {
-    public List<BookResponse> Books { get; set; } = null!;
 }

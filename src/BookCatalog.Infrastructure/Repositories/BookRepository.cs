@@ -1,5 +1,8 @@
-﻿using BookCatalog.Application.Interfaces.Repositories;
+﻿using System.Linq.Expressions;
+using BookCatalog.Application.Interfaces.Repositories;
 using BookCatalog.Domain.Models;
+using BookCatalog.Domain.Pagination;
+using BookCatalog.Domain.SearchModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace BookCatalog.Infrastructure.Repositories;
@@ -13,9 +16,60 @@ public class BookRepository : IBookRepository
         _dbContext = dbContext;
     }
 
-    public async Task<List<Book>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<BaseSearchModelPagedResponse<Book>> GetAllAsync(BookSearchModel request,
+        CancellationToken cancellationToken)
     {
-        return await _dbContext.Books.ToListAsync(cancellationToken);
+        var query = _dbContext.Books.AsQueryable();
+
+        // filtering
+        if (!string.IsNullOrEmpty(request.Title))
+            query = query.Where(p => p.Title.ToLower().Contains(request.Title.ToLower()));
+
+        if (!string.IsNullOrEmpty(request.Author))
+            query = query.Where(p => p.Author.ToLower().Contains(request.Author.ToLower()));
+
+        if (!string.IsNullOrEmpty(request.Isbn))
+            query = query.Where(p => p.Isbn.ToLower().Contains(request.Isbn.ToLower()));
+        
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // ordering
+        if (!string.IsNullOrWhiteSpace(request.SortBy))
+        {
+            var field = request.SortBy.ToLower();
+            // object, because different types for different fields
+            Expression<Func<Book, object>>? lambda = null;
+            // if instead of a switch because doesn't compile nameof(...).ToLower() in switch - needs constant data
+            if (field == nameof(Book.Title).ToLower())
+                lambda = p => p.Title;
+            else if (field == nameof(Book.Author).ToLower())
+                lambda = p => p.Author;
+            else if (field == nameof(Book.PublishDate).ToLower())
+                lambda = p => p.PublishDate ?? new DateTime();
+
+            if (lambda != null)
+            {
+                if (request.Desc)
+                    query = query.OrderByDescending(lambda);
+                else
+                    query = query.OrderBy(lambda);
+            }
+        }
+
+        // pagination
+        var products = await query
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new BaseSearchModelPagedResponse<Book>
+        {
+            Items = products,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling((double)totalCount / request.PageSize),
+            PageSize = request.PageSize,
+            Page = request.Page
+        };
     }
 
     public async Task<Book?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
