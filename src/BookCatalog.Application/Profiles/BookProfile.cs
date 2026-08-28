@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using BookCatalog.Application.Responses.Book.Query;
+using BookCatalog.Application.Responses.Book;
 using BookCatalog.Domain.Models;
 
 namespace BookCatalog.Application.Profiles;

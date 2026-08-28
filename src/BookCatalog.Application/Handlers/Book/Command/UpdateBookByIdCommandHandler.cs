@@ -1,6 +1,6 @@
 using AutoMapper;
 using BookCatalog.Application.Requests.Book.Command;
-using BookCatalog.Application.Responses.Book.Query;
+using BookCatalog.Application.Responses.Book;
 using BookCatalog.Application.Services.Book;
 using MediatR;
 

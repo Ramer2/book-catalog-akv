@@ -1,4 +1,4 @@
-﻿namespace BookCatalog.Application.Responses.Book.Query;
+﻿namespace BookCatalog.Application.Responses.Book;
 
 public class BookResponse
 {

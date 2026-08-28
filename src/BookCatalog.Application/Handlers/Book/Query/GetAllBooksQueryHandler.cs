@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using BookCatalog.Application.Interfaces.Repositories;
 using BookCatalog.Application.Requests.Book.Query;
-using BookCatalog.Application.Responses.Book.Query;
+using BookCatalog.Application.Responses.Book;
 using MediatR;
 
 namespace BookCatalog.Application.Handlers.Book.Query;
