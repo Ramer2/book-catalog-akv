@@ -45,3 +45,6 @@ I use NUnit3 and Moq to test validation errors, services, handlers, business log
 
 ### Exception handling
 Is done using API filters. Logs are created on every error caught.
+
+### Pagination and filtering
+All pagination and filtering are done using base classes: `BaseSearchModelPagedQuery` and `BaseSearchModelPagedResponse` and search models, such as `BookSearchModel`. They contain key properties, which interact with repositories and handlers.
