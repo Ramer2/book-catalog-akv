@@ -1,4 +1,4 @@
-using BookCatalog.Application.Responses.Book.Query;
+using BookCatalog.Application.Responses.Book;
 
 namespace BookCatalog.Application.Requests.Book.Query;
 

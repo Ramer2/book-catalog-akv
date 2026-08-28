@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using BookCatalog.Application.Interfaces.Repositories;
 using BookCatalog.Application.Requests.Book.Query;
-using BookCatalog.Application.Responses.Book.Query;
+using BookCatalog.Application.Responses.Book;
 using MediatR;
 
 namespace BookCatalog.Application.Handlers.Book.Query;
@@ -19,10 +19,14 @@ public class GetAllBooksQueryHandler : IRequestHandler<GetAllBooksQuery, GetAllB
 
     public async Task<GetAllBooksResponse> Handle(GetAllBooksQuery request, CancellationToken cancellationToken)
     {
-        var books = await _bookRepository.GetAllAsync(cancellationToken);
+        var books = await _bookRepository.GetAllAsync(request, cancellationToken);
         return new GetAllBooksResponse
         {
-            Books = _mapper.Map<List<BookResponse>>(books)
+            Items = _mapper.Map<IEnumerable<BookResponse>>(books.Items),
+            TotalCount = books.TotalCount,
+            TotalPages = books.TotalPages,
+            Page = books.Page,
+            PageSize = books.PageSize
         };
     }
 }
