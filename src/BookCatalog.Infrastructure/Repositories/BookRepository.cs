@@ -16,60 +16,81 @@ public class BookRepository : IBookRepository
         _dbContext = dbContext;
     }
 
+    private static readonly IReadOnlyDictionary<string, Expression<Func<Book, object>>> SortColumns =
+        new Dictionary<string, Expression<Func<Book, object>>>(StringComparer.OrdinalIgnoreCase)
+        {
+            [nameof(Book.Title)] = b => b.Title,
+            [nameof(Book.Author)] = b => b.Author,
+            [nameof(Book.PublishDate)] = b => b.PublishDate ?? DateTime.MinValue
+        };
+
     public async Task<BaseSearchModelPagedResponse<Book>> GetAllAsync(BookSearchModel request,
         CancellationToken cancellationToken)
     {
-        var query = _dbContext.Books.AsQueryable();
+        var filtered = ApplyFilters(_dbContext.Books, request);
+        var totalCount = await filtered.CountAsync(cancellationToken);
 
-        // filtering
+        var ordered = ApplySorting(filtered, request);
+        var books = await ApplyPaging(ordered, request).ToListAsync(cancellationToken);
+
+        return BuildResponse(books, totalCount, request);
+    }
+
+    private static IQueryable<Book> ApplyFilters(IQueryable<Book> query, BookSearchModel request)
+    {
         if (!string.IsNullOrEmpty(request.Title))
-            query = query.Where(p => p.Title.ToLower().Contains(request.Title.ToLower()));
+            query = query.Where(b => b.Title.ToLower().Contains(request.Title.ToLower()));
 
         if (!string.IsNullOrEmpty(request.Author))
-            query = query.Where(p => p.Author.ToLower().Contains(request.Author.ToLower()));
+            query = query.Where(b => b.Author.ToLower().Contains(request.Author.ToLower()));
 
         if (!string.IsNullOrEmpty(request.Isbn))
-            query = query.Where(p => p.Isbn.ToLower().Contains(request.Isbn.ToLower()));
-        
-        var totalCount = await query.CountAsync(cancellationToken);
+            query = query.Where(b => b.Isbn.ToLower().Contains(request.Isbn.ToLower()));
 
-        // ordering
-        if (!string.IsNullOrWhiteSpace(request.SortBy))
+        return query;
+    }
+
+    private static IOrderedQueryable<Book> ApplySorting(IQueryable<Book> query, BookSearchModel request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.SortBy)
+            && SortColumns.TryGetValue(request.SortBy, out var lambda))
         {
-            var field = request.SortBy.ToLower();
-            // object, because different types for different fields
-            Expression<Func<Book, object>>? lambda = null;
-            // if instead of a switch because doesn't compile nameof(...).ToLower() in switch - needs constant data
-            if (field == nameof(Book.Title).ToLower())
-                lambda = p => p.Title;
-            else if (field == nameof(Book.Author).ToLower())
-                lambda = p => p.Author;
-            else if (field == nameof(Book.PublishDate).ToLower())
-                lambda = p => p.PublishDate ?? new DateTime();
-
-            if (lambda != null)
-            {
-                if (request.Desc)
-                    query = query.OrderByDescending(lambda);
-                else
-                    query = query.OrderBy(lambda);
-            }
+            return request.Desc
+                ? query.OrderByDescending(lambda).ThenBy(b => b.Id)
+                : query.OrderBy(lambda).ThenBy(b => b.Id);
         }
 
-        // pagination
-        var products = await query
-            .Skip((request.Page - 1) * request.PageSize)
-            .Take(request.PageSize)
-            .ToListAsync(cancellationToken);
+        // deterministic default so Skip/Take pages stay stable when SortBy is null or unknown
+        return query.OrderBy(b => b.Id);
+    }
+
+    private static IQueryable<Book> ApplyPaging(IQueryable<Book> query, BookSearchModel request)
+    {
+        var (page, pageSize) = SanitizePaging(request);
+        return query.Skip((page - 1) * pageSize).Take(pageSize);
+    }
+
+    private static BaseSearchModelPagedResponse<Book> BuildResponse(
+        IReadOnlyList<Book> items, int totalCount, BookSearchModel request)
+    {
+        var (page, pageSize) = SanitizePaging(request);
+        var totalPages = totalCount == 0 ? 0 : (totalCount + pageSize - 1) / pageSize;
 
         return new BaseSearchModelPagedResponse<Book>
         {
-            Items = products,
+            Items = items,
             TotalCount = totalCount,
-            TotalPages = (int)Math.Ceiling((double)totalCount / request.PageSize),
-            PageSize = request.PageSize,
-            Page = request.Page
+            TotalPages = totalPages,
+            PageSize = pageSize,
+            Page = page
         };
+    }
+
+    private static (int Page, int PageSize) SanitizePaging(BookSearchModel request)
+    {
+        var page = request.Page < 1 ? 1 : request.Page;
+        var pageSize = request.PageSize < 1 ? 1 : request.PageSize;
+        return (page, pageSize);
     }
 
     public async Task<Book?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
