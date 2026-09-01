@@ -1,0 +1,18 @@
+﻿services:
+  bookcatalog.api:
+    image: bookcatalog.api
+    build:
+      context: .
+      dockerfile: src/BookCatalog.Api/Dockerfile
+    container_name: book_catalog_api
+    ports:
+      - "8080:8080"
+    environment:
+      # asp
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+  
+      # db
+      ConnectionStrings__DbConnection: Host=shop.products.db;Port=${POSTGRES_INTERNAL_PORT};Database=${POSTGRES_DATABASE};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+  
+      # mediatr
+      MediatRLicense: ${MEDIATR_LICENSE}
