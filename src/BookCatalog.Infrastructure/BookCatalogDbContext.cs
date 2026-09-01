@@ -7,10 +7,7 @@ namespace BookCatalog.Infrastructure;
 public class BookCatalogDbContext : DbContext
 {
     public DbSet<Book> Books { get; set; }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder options)
-        => options.UseSqlite($"Data Source=temp.db");
-
+    
     public BookCatalogDbContext(DbContextOptions<BookCatalogDbContext> options) : base(options)
     {
     }

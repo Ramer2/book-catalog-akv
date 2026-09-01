@@ -488,3 +488,6 @@ appsettings.json
 
 # sqlite test db
 temp.db*
+
+# postgres files
+postgres-data

@@ -47,11 +47,8 @@ public static class ServicesCollectionExtension
 
     public static void AddEfCore(IServiceCollection services, IConfiguration configuration)
     {
-        // var connectionString = configuration.GetConnectionString("DbConnection");
-        services.AddDbContext<BookCatalogDbContext>(options =>
-        {
-            options.UseSqlite("Data Source=temp.db");
-        });
+        var connectionString = configuration.GetConnectionString("DbConnection");
+        services.AddDbContext<BookCatalogDbContext>(options => { options.UseNpgsql(connectionString); });
     }
 
     public static void AddMediatR(IServiceCollection services, IConfiguration configuration)
