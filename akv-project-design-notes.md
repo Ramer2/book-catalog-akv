@@ -18,6 +18,11 @@ Temporarily I am using Sqlite in-memory database. I intend to use Postgres when 
 
 Repositories use a common `IRepository` interface as a generic base template.
 
+### Migration process
+Migration process wasn't smooth due to a single issue: due to me using Sqlite first, the DateTime property was mapping to text, which later carried to Postgres. So I decided to overwrite the migrations from the beginning.
+
+I am aware that migrations are editable, but I don't have that much experience to try and dig into it, and considering I am not dealing with real data, the cost of 5 commands was smaller than me going head-deep into migrations code.
+
 ### Request Flow
 For managing request flows I will use CQRS pattern using MediatR. The main advantage for me is ability to integrate automatic validation checks into the MediatR's pipeline.
 
