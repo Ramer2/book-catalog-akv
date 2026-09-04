@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using BookCatalog.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,6 +6,7 @@ namespace BookCatalog.Infrastructure;
 
 public class BookCatalogDbContext : DbContext
 {
+    public DbSet<Author> Authors { get; set; }
     public DbSet<Book> Books { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<Loan> Loans { get; set; }
@@ -20,6 +21,11 @@ public class BookCatalogDbContext : DbContext
 
         // apply configs
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+        // table mappings
+        modelBuilder
+            .Entity<Author>()
+            .ToTable("Author");
 
         // unique constraint
         modelBuilder

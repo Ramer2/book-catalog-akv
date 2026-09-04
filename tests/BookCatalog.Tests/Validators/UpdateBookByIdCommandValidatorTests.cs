@@ -1,5 +1,8 @@
+using BookCatalog.Application.Requests.Book.Command;
+using BookCatalog.Application.Services.Author;
 using BookCatalog.Application.Services.Isbn;
 using BookCatalog.Application.Validators.Book.Command;
+using BookCatalog.Domain.Exceptions;
 using BookCatalog.Tests.TestUtils;
 using FluentValidation.TestHelper;
 
@@ -10,12 +13,15 @@ namespace BookCatalog.Tests.Validators;
 public class UpdateBookByIdCommandValidatorTests
 {
     private Mock<IIsbnService> _isbnService = null!;
+    private Mock<IAuthorService> _authorService = null!;
     private UpdateBookByIdCommandValidator _sut = null!;
 
     [SetUp]
     public void SetUp()
     {
         _isbnService = new Mock<IIsbnService>(MockBehavior.Strict);
+        _authorService = new Mock<IAuthorService>(MockBehavior.Strict);
+
         _isbnService
             .Setup(s => s.EnsureIsbnUniqueAsync(
                 It.IsAny<string>(),
@@ -23,7 +29,13 @@ public class UpdateBookByIdCommandValidatorTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        _sut = new UpdateBookByIdCommandValidator(_isbnService.Object);
+        _authorService
+            .Setup(s => s.GetOrThrowAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(AuthorFaker.Author());
+
+        _sut = new UpdateBookByIdCommandValidator(_isbnService.Object, _authorService.Object);
     }
 
     [Test]
@@ -143,25 +155,30 @@ public class UpdateBookByIdCommandValidatorTests
     }
 
     [Test]
-    public async Task Author_Should_HaveRequiredError_When_Empty()
+    public async Task AuthorId_Should_HaveRequiredError_When_Empty()
     {
-        var command = BookFaker.UpdateCommand(author: string.Empty);
+        var command = BookFaker.UpdateCommand(authorId: Guid.Empty);
 
         var result = await _sut.TestValidateAsync(command);
 
-        result.ShouldHaveValidationErrorFor(x => x.Author)
-            .WithErrorMessage("Author is required.");
+        result.ShouldHaveValidationErrorFor(x => x.AuthorId)
+            .WithErrorMessage("AuthorId is required.");
     }
 
     [Test]
-    public async Task Author_Should_HaveLengthError_When_Exceeds256Characters()
+    public async Task AuthorId_Should_HaveNotFoundError_When_AuthorDoesNotExist()
     {
-        var command = BookFaker.UpdateCommand(author: new string('a', 257));
+        var missingAuthorId = Guid.NewGuid();
+        _authorService
+            .Setup(s => s.GetOrThrowAsync(missingAuthorId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new EntityNotFoundException("No author found for a given id."));
+
+        var command = BookFaker.UpdateCommand(authorId: missingAuthorId);
 
         var result = await _sut.TestValidateAsync(command);
 
-        result.ShouldHaveValidationErrorFor(x => x.Author)
-            .WithErrorMessage("Author must not exceed 256 characters.");
+        result.ShouldHaveValidationErrorFor(x => x.AuthorId)
+            .WithErrorMessage("Author not found.");
     }
 
     [TestCase(0, TestName = "NumberOfPages 0 is rejected")]

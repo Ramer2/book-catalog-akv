@@ -23,7 +23,7 @@ public class UpdateBookByIdCommandHandler : IRequestHandler<UpdateBookByIdComman
 
         book.Isbn = request.Isbn;
         book.Title = request.Title;
-        book.Author = request.Author;
+        book.AuthorId = request.AuthorId;
         book.NumberOfPages = request.NumberOfPages;
         book.PublishDate = request.PublishDate;
 

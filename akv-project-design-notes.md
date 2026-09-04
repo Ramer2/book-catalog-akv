@@ -53,3 +53,9 @@ Is done using API filters. Logs are created on every error caught.
 
 ### Pagination and filtering
 All pagination and filtering are done using base classes: `BaseSearchModelPagedQuery` and `BaseSearchModelPagedResponse` and search models, such as `BookSearchModel`. They contain key properties, which interact with repositories and handlers.
+
+### Lending functionality
+Lending functionality was implemented with a visible history of borrowing and a limitation, that a book cannot be borrowed by the same user twice.
+
+### Transactions
+The race condition for borrowing the book (while one user still in the process of borrowing the book, another one already takes it) is solved by encasing the whole process into a transaction. This is done using `TransactionBehavior`, which encases all commands, which have an `ITransactionalCommand` marker.

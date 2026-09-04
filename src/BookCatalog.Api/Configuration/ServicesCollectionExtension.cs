@@ -1,9 +1,10 @@
-﻿using BookCatalog.Api.ExceptionHandling.Filters;
+using BookCatalog.Api.ExceptionHandling.Filters;
 using BookCatalog.Application;
 using BookCatalog.Application.Behaviors;
 using BookCatalog.Application.Interfaces.Persistence;
 using BookCatalog.Application.Interfaces.Repositories;
 using BookCatalog.Application.Interfaces.Transactions;
+using BookCatalog.Application.Services.Author;
 using BookCatalog.Application.Services.Book;
 using BookCatalog.Application.Services.Isbn;
 using BookCatalog.Application.Services.Loan;
@@ -99,6 +100,7 @@ public static class ServicesCollectionExtension
 
     public static void AddRepositories(IServiceCollection services)
     {
+        services.AddScoped<IAuthorRepository, AuthorRepository>();
         services.AddScoped<IBookRepository, BookRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ILoanRepository, LoanRepository>();
@@ -106,6 +108,7 @@ public static class ServicesCollectionExtension
 
     public static void AddServices(IServiceCollection services)
     {
+        services.AddScoped<IAuthorService, AuthorService>();
         services.AddScoped<IBookService, BookService>();
         services.AddScoped<IIsbnService, IsbnService>();
         services.AddScoped<IUserService, UserService>();

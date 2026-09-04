@@ -31,7 +31,7 @@ public class UpdateBookByIdCommandHandlerTests
         var existing = BookFaker.Book(
             isbn: "0000000001",
             title: "old title",
-            author: "old author",
+            authorId: Guid.NewGuid(),
             numberOfPages: 10,
             publishDate: new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc));
 
@@ -52,8 +52,8 @@ public class UpdateBookByIdCommandHandlerTests
                 "Handler must overwrite Book.Isbn from the command");
             Assert.That(existing.Title, Is.EqualTo(command.Title),
                 "Handler must overwrite Book.Title from the command");
-            Assert.That(existing.Author, Is.EqualTo(command.Author),
-                "Handler must overwrite Book.Author from the command");
+            Assert.That(existing.AuthorId, Is.EqualTo(command.AuthorId),
+                "Handler must overwrite Book.AuthorId from the command");
             Assert.That(existing.NumberOfPages, Is.EqualTo(command.NumberOfPages),
                 "Handler must overwrite Book.NumberOfPages from the command");
             Assert.That(existing.PublishDate, Is.EqualTo(command.PublishDate),

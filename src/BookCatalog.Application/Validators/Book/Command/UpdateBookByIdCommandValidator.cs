@@ -1,5 +1,7 @@
 using BookCatalog.Application.Requests.Book.Command;
+using BookCatalog.Application.Services.Author;
 using BookCatalog.Application.Services.Isbn;
+using BookCatalog.Domain.Exceptions;
 using FluentValidation;
 
 namespace BookCatalog.Application.Validators.Book.Command;
@@ -7,10 +9,12 @@ namespace BookCatalog.Application.Validators.Book.Command;
 public class UpdateBookByIdCommandValidator : AbstractValidator<UpdateBookByIdCommand>
 {
     private readonly IIsbnService _isbnService;
+    private readonly IAuthorService _authorService;
 
-    public UpdateBookByIdCommandValidator(IIsbnService isbnService)
+    public UpdateBookByIdCommandValidator(IIsbnService isbnService, IAuthorService authorService)
     {
         _isbnService = isbnService;
+        _authorService = authorService;
 
         RuleFor(x => x.Id)
             .NotEqual(Guid.Empty)
@@ -31,11 +35,12 @@ public class UpdateBookByIdCommandValidator : AbstractValidator<UpdateBookByIdCo
             .MaximumLength(256)
             .WithMessage("Title must not exceed 256 characters.");
 
-        RuleFor(x => x.Author)
-            .NotEmpty()
-            .WithMessage("Author is required.")
-            .MaximumLength(256)
-            .WithMessage("Author must not exceed 256 characters.");
+        RuleFor(x => x.AuthorId)
+            .Cascade(CascadeMode.Stop)
+            .NotEqual(Guid.Empty)
+            .WithMessage("AuthorId is required.")
+            .MustAsync(AuthorExistsAsync)
+            .WithMessage("Author not found.");
 
         RuleFor(x => x.NumberOfPages)
             .GreaterThan(0)
@@ -45,5 +50,18 @@ public class UpdateBookByIdCommandValidator : AbstractValidator<UpdateBookByIdCo
             .LessThanOrEqualTo(DateTime.UtcNow)
             .WithMessage("Publish date cannot be in the future.")
             .When(x => x.PublishDate.HasValue);
+    }
+
+    private async Task<bool> AuthorExistsAsync(Guid authorId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _authorService.GetOrThrowAsync(authorId, cancellationToken);
+            return true;
+        }
+        catch (EntityNotFoundException)
+        {
+            return false;
+        }
     }
 }

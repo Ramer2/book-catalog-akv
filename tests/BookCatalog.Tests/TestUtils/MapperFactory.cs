@@ -11,6 +11,7 @@ internal static class MapperFactory
         var config = new MapperConfiguration(
             cfg =>
             {
+                cfg.AddProfile<AuthorProfile>();
                 cfg.AddProfile<BookProfile>();
                 cfg.AddProfile<UserProfile>();
                 cfg.AddProfile<LoanProfile>();

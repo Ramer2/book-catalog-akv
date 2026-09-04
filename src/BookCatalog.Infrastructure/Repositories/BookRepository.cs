@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using BookCatalog.Application.Interfaces.Repositories;
 using BookCatalog.Domain.Models;
 using BookCatalog.Domain.Pagination;
@@ -20,14 +20,13 @@ public class BookRepository : IBookRepository
         new Dictionary<string, Expression<Func<Book, object>>>(StringComparer.OrdinalIgnoreCase)
         {
             [nameof(Book.Title)] = b => b.Title,
-            [nameof(Book.Author)] = b => b.Author,
             [nameof(Book.PublishDate)] = b => b.PublishDate ?? DateTime.MinValue
         };
 
     public async Task<BaseSearchModelPagedResponse<Book>> GetAllAsync(BookSearchModel request,
         CancellationToken cancellationToken)
     {
-        var filtered = ApplyFilters(_dbContext.Books, request);
+        var filtered = ApplyFilters(_dbContext.Books.Include(b => b.Author), request);
         var totalCount = await filtered.CountAsync(cancellationToken);
 
         var ordered = ApplySorting(filtered, request);
@@ -40,9 +39,6 @@ public class BookRepository : IBookRepository
     {
         if (!string.IsNullOrEmpty(request.Title))
             query = query.Where(b => b.Title.ToLower().Contains(request.Title.ToLower()));
-
-        if (!string.IsNullOrEmpty(request.Author))
-            query = query.Where(b => b.Author.ToLower().Contains(request.Author.ToLower()));
 
         if (!string.IsNullOrEmpty(request.Isbn))
             query = query.Where(b => b.Isbn.ToLower().Contains(request.Isbn.ToLower()));
@@ -95,12 +91,16 @@ public class BookRepository : IBookRepository
 
     public async Task<Book?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await _dbContext.Books.FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
+        return await _dbContext.Books
+            .Include(b => b.Author)
+            .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
     }
 
     public async Task<Book?> GetBookByIsbnAsync(string isbn, CancellationToken cancellationToken)
     {
-        return await _dbContext.Books.FirstOrDefaultAsync(b => b.Isbn == isbn, cancellationToken);
+        return await _dbContext.Books
+            .Include(b => b.Author)
+            .FirstOrDefaultAsync(b => b.Isbn == isbn, cancellationToken);
     }
 
     public async Task InsertAsync(Book entity, CancellationToken cancellationToken)
