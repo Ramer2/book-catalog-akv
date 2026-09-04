@@ -3,9 +3,6 @@ using BookCatalog.Domain.Models;
 
 namespace BookCatalog.Tests.TestUtils;
 
-/// <summary>
-/// Deterministic sample data for Loan-related tests.
-/// </summary>
 internal static class LoanFaker
 {
     public static readonly DateTime ValidBorrowedAt =

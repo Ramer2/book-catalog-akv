@@ -3,10 +3,6 @@ using BookCatalog.Domain.Models;
 
 namespace BookCatalog.Tests.TestUtils;
 
-/// <summary>
-/// Deterministic sample data. Keep values distinct so a failing assertion
-/// clearly shows which field diverged.
-/// </summary>
 internal static class BookFaker
 {
     public const string ValidIsbn = "1234567890";

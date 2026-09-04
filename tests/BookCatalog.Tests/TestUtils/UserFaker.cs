@@ -3,10 +3,6 @@ using BookCatalog.Domain.Models;
 
 namespace BookCatalog.Tests.TestUtils;
 
-/// <summary>
-/// Deterministic sample data for User-related tests. Keep values distinct
-/// so a failing assertion clearly shows which field diverged.
-/// </summary>
 internal static class UserFaker
 {
     public const string ValidEmail = "john.doe@example.com";

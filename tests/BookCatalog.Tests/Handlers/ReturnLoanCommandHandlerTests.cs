@@ -22,7 +22,7 @@ public class ReturnLoanCommandHandlerTests
     {
         _loanRepository = new Mock<ILoanRepository>(MockBehavior.Strict);
         _mapper = MapperFactory.Create();
-        _loanService = new LoanService(_loanRepository.Object);
+        _loanService = LoanServiceFactory.Create(_loanRepository.Object);
         _sut = new ReturnLoanCommandHandler(_mapper, _loanService);
     }
 

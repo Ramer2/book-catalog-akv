@@ -6,6 +6,8 @@ namespace BookCatalog.Infrastructure.Configs;
 
 public class LoanConfiguration : IEntityTypeConfiguration<Loan>
 {
+    public const string ActiveLoanIndexName = "UX_Loan_BookId_Active";
+
     public void Configure(EntityTypeBuilder<Loan> builder)
     {
         builder
@@ -43,9 +45,15 @@ public class LoanConfiguration : IEntityTypeConfiguration<Loan>
             .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Speeds up "does this book have an open loan" lookups.
+        // Enforces "at most one active loan per book" at the database level.
+        // The partial predicate matches how ILoanRepository.GetActiveLoanForBookAsync
+        // considers a loan "active" (ReturnedAt IS NULL), and closes the race
+        // between the availability check and the insert.
         builder
-            .HasIndex(x => new { x.BookId, x.ReturnedAt });
+            .HasIndex(x => x.BookId)
+            .IsUnique()
+            .HasDatabaseName(LoanConfiguration.ActiveLoanIndexName)
+            .HasFilter("\"ReturnedAt\" IS NULL");
 
         builder
             .HasIndex(x => x.UserId);

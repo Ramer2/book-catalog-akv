@@ -1,8 +1,10 @@
+using BookCatalog.Application.Interfaces.Persistence;
 using BookCatalog.Application.Interfaces.Repositories;
 using BookCatalog.Application.Services.Loan;
 using BookCatalog.Domain.Exceptions;
 using BookCatalog.Domain.Models;
 using BookCatalog.Tests.TestUtils;
+using Microsoft.EntityFrameworkCore;
 
 namespace BookCatalog.Tests.Services;
 
@@ -10,13 +12,19 @@ namespace BookCatalog.Tests.Services;
 public class LoanServiceTests
 {
     private Mock<ILoanRepository> _loanRepository = null!;
+    private Mock<IDbExceptionInterpreter> _dbExceptionInterpreter = null!;
     private LoanService _sut = null!;
 
     [SetUp]
     public void SetUp()
     {
         _loanRepository = new Mock<ILoanRepository>(MockBehavior.Strict);
-        _sut = new LoanService(_loanRepository.Object);
+        _dbExceptionInterpreter = new Mock<IDbExceptionInterpreter>(MockBehavior.Strict);
+        // Default: no exception looks like a unique-violation. Individual tests can override.
+        _dbExceptionInterpreter
+            .Setup(i => i.IsUniqueViolation(It.IsAny<Exception>(), It.IsAny<string?>()))
+            .Returns(false);
+        _sut = new LoanService(_loanRepository.Object, _dbExceptionInterpreter.Object);
     }
 
     // ---------- GetOrThrowAsync ----------
@@ -84,6 +92,57 @@ public class LoanServiceTests
             Assert.That(captured.BorrowedAt, Is.InRange(before, after),
                 "BorrowedAt must be assigned to 'now' when the loan is created");
         });
+    }
+
+    [Test]
+    public void BorrowAsync_Should_ThrowBookAlreadyBorrowedException_When_UniqueViolationSurfaces()
+    {
+        var bookId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var dbFailure = new DbUpdateException("simulated unique violation");
+
+        _loanRepository
+            .Setup(r => r.InsertAsync(It.IsAny<Loan>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(dbFailure);
+
+        // Reset the default (returns false) and specifically flag this exception
+        // against the partial unique index name that LoanService checks for.
+        _dbExceptionInterpreter.Reset();
+        _dbExceptionInterpreter
+            .Setup(i => i.IsUniqueViolation(dbFailure, LoanService.ActiveLoanIndexName))
+            .Returns(true);
+
+        var thrown = Assert.ThrowsAsync<BookAlreadyBorrowedException>(
+            () => _sut.BorrowAsync(bookId, userId),
+            "A unique-violation on the active-loan index must be translated into BookAlreadyBorrowedException");
+
+        Assert.That(thrown!.InnerException, Is.SameAs(dbFailure),
+            "The original DB exception must be preserved as InnerException for diagnostics");
+
+        _dbExceptionInterpreter.Verify(
+            i => i.IsUniqueViolation(dbFailure, LoanService.ActiveLoanIndexName),
+            Times.Once,
+            "LoanService must ask the interpreter to classify the exception against the specific index");
+    }
+
+    [Test]
+    public void BorrowAsync_Should_RethrowUnclassifiedDbFailures()
+    {
+        var bookId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var dbFailure = new DbUpdateException("unrelated failure");
+
+        _loanRepository
+            .Setup(r => r.InsertAsync(It.IsAny<Loan>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(dbFailure);
+        // Interpreter says "not a unique-violation" (default from SetUp).
+
+        var thrown = Assert.ThrowsAsync<DbUpdateException>(
+            () => _sut.BorrowAsync(bookId, userId),
+            "Non-unique-violation DB errors must not be swallowed - they should propagate unchanged");
+
+        Assert.That(thrown, Is.SameAs(dbFailure),
+            "The original DbUpdateException instance must be rethrown as-is");
     }
 
     // ---------- ReturnAsync ----------
