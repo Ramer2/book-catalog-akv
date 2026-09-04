@@ -7,7 +7,9 @@ namespace BookCatalog.Infrastructure;
 public class BookCatalogDbContext : DbContext
 {
     public DbSet<Book> Books { get; set; }
-    
+    public DbSet<User> Users { get; set; }
+    public DbSet<Loan> Loans { get; set; }
+
     public BookCatalogDbContext(DbContextOptions<BookCatalogDbContext> options) : base(options)
     {
     }
@@ -25,5 +27,20 @@ public class BookCatalogDbContext : DbContext
             .ToTable("Book")
             .HasIndex(b => b.Isbn)
             .IsUnique();
+
+        modelBuilder
+            .Entity<User>()
+            .ToTable("User")
+            .HasIndex(u => u.Email)
+            .IsUnique();
+
+        modelBuilder
+            .Entity<User>()
+            .HasIndex(u => u.PhoneNumber)
+            .IsUnique();
+
+        modelBuilder
+            .Entity<Loan>()
+            .ToTable("Loan");
     }
 }
