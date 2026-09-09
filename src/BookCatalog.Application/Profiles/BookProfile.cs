@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+using AutoMapper;
+using BookCatalog.Application.Responses.Author;
 using BookCatalog.Application.Responses.Book;
 using BookCatalog.Domain.Models;
 
@@ -8,6 +9,8 @@ public class BookProfile : Profile
 {
     public BookProfile()
     {
-        CreateMap<Book, BookResponse>();
+        CreateMap<Book, BookResponse>()
+            .ForMember(dest => dest.Author, opt => opt.MapFrom(src => src.Author));
+        CreateMap<Author, AuthorResponse>();
     }
 }

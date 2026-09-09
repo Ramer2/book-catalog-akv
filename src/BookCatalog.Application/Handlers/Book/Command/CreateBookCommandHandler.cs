@@ -19,7 +19,7 @@ public class CreateBookCommandHandler : IRequestHandler<CreateBookCommand, BookR
 
     public async Task<BookResponse> Handle(CreateBookCommand request, CancellationToken cancellationToken)
     {
-        var book = new BookCatalog.Domain.Models.Book(request.Isbn, request.Title, request.Author, request.NumberOfPages, request.PublishDate);
+        var book = new Domain.Models.Book(request.Isbn, request.Title, request.AuthorId, request.NumberOfPages, request.PublishDate);
         var createdBook = await _bookService.CreateAsync(book, cancellationToken);
         return _mapper.Map<BookResponse>(createdBook);
     }

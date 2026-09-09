@@ -1,55 +1,99 @@
-# Week 1
-### Project structure
-Project includes default Clean Architecture structure, consisting of four layers (projects):
-1. API layer - configs, endpoints, error handling (future)
-2. Application layer - services, handlers, DTOs, interfaces
-3. Infrastructure layer - `DbContext`, repository implementation, external services
-4. Domain - domain entities
+# BookCatalog - Architectural & System Design Notes
 
-I did this to improve and futureproof future development.
+## 1. Executive Summary & Overview
 
-### Configs
-`appsettings.json` include the actual configs, while `appsettings.Development.json` includes non-critical, example configs.
+`BookCatalog` is a modular, high-performance web service built with C# and .NET, designed to manage books, authors, registered users, and book lending operations. The application is architected around **Clean Architecture** principles and the **CQRS (Command Query Responsibility Segregation)** pattern, providing clear boundaries between domain logic, persistence, and external presentation layers.
 
-`appsettings.json` is included into `.gitignore`.
+---
 
-### Data Storage
-Temporarily I am using Sqlite in-memory database. I intend to use Postgres when Docker is going to be set up.
+## 2. Architectural Blueprint & Layering
 
-Repositories use a common `IRepository` interface as a generic base template.
+The codebase is organized into four distinct projects, enforcing strict unidirectional dependencies:
 
-### Migration process
-Migration process wasn't smooth due to a single issue: due to me using Sqlite first, the DateTime property was mapping to text, which later carried to Postgres. So I decided to overwrite the migrations from the beginning.
+```mermaid
+    API[BookCatalog.Api] --> App[BookCatalog.Application]
+    Infra[BookCatalog.Infrastructure] --> App
+    Infra --> Domain[BookCatalog.Domain]
+    App --> Domain
+```
 
-I am aware that migrations are editable, but I don't have that much experience to try and dig into it, and considering I am not dealing with real data, the cost of 5 commands was smaller than me going head-deep into migrations code.
+1. **Domain Layer (`BookCatalog.Domain`)**
+   - Contains enterprise entities (`Book`, `Author`, `User`, `Loan`), domain exceptions (`EntityNotFoundException`, `BookAlreadyBorrowedException`), and common pagination/search base models (`BaseSearchModelPagedQuery`, `BaseSearchModelPagedResponse<T>`).
+   - Free of external framework dependencies, maintaining pure core business rules.
 
-### Request Flow
-For managing request flows I will use CQRS pattern using MediatR. The main advantage for me is ability to integrate automatic validation checks into the MediatR's pipeline.
+2. **Application Layer (`BookCatalog.Application`)**
+   - Implements CQRS request objects (`CreateBookCommand`, `GetAuthorByIdQuery`, etc.) and MediatR request handlers.
+   - Houses application services (`BookService`, `AuthorService`, `UserService`, `LoanService`, `IsbnService`) and interface abstractions (`IAuthorRepository`, `ITransactionProvider`, etc.).
+   - Orchestrates cross-cutting pipeline behaviors (`LoggingBehavior`, `ValidationBehavior`, `TransactionBehavior`) and DTO mapping profiles (`AutoMapper`).
 
-### Validation
-Validation is performed using a FluentValidation library, with validators being built-into the MediatR's pipeline using Behavior.
+3. **Infrastructure Layer (`BookCatalog.Infrastructure`)**
+   - Implements data persistence via **EF Core** with PostgreSQL.
+   - Contains entity configurations (`IEntityTypeConfiguration<T>`), repository implementations leveraging a generic `IRepository<T, TSearchModel>` base template, database exception interpreters (`NpgsqlDbExceptionInterpreter`), and EF migrations.
 
-Added an ISBN service to validate ISBN uniqueness in books.
+4. **API Layer (`BookCatalog.Api`)**
+   - Exposes RESTful endpoints via ASP.NET Core controllers (`BooksController`, `AuthorsController`, `UsersController`, `LoansController`).
+   - Configures Dependency Injection in `ServicesCollectionExtension` and manages HTTP error responses via specialized API Exception Filters.
 
-### Logging
-Added `GlobalExceptionHandler` to handle all the errors and for easier logging of said errors.
-Also, requests are logged using a `LoggingBehavior` Behavior in the MediatR pipeline.
+---
 
-### Additional tools
-AutoMapper - reduces the burden of mapping from one class to another (for example, with DTOs).
+## 3. Data Access & Infrastructure Strategy
 
-### Things to improve
-I would love to use Docker for easier environment management and not having to deal with "oh, you have two dotnet versions on your PC, and I can see only one. good luck".
+### Environment & Database Setup
+- **PostgreSQL Containerization**: The runtime environment is fully dockerized using `compose.yaml`, pairing the ASP.NET API service with a PostgreSQL database instance (`books.db`).
+- **Configuration Management**: Non-sensitive defaults reside in `appsettings.Development.json`, while production database credentials and MediatR configuration are injected via environment variables and a git-ignored `appsettings.json`.
 
-Database is also a bit lackluster, PostgreSQL would be easier to interact with.
+### EF Core Migration Strategy
+- During early prototyping, SQLite in-memory storage was briefly evaluated. Because SQLite mapped `DateTime` fields to text types-which risked carrying non-idiomatic column mappings over to PostgreSQL-the migration history was cleanly reset and re-scaffolded directly against Npgsql/PostgreSQL.
+- Production migrations (`SyncPostgresMigration`, `AddUsersAndLoans`, `AddLoanActiveUniqueIndex`, `AddAuthors`) reflect a clean, Postgres-native schema history.
 
-For error handling I think I will move to using filters, although I am still considering this.
+---
 
-### Unit Tests
-I use NUnit3 and Moq to test validation errors, services, handlers, business logic.
+## 4. Request Flow, Validation & Cross-Cutting Concerns
 
-### Exception handling
-Is done using API filters. Logs are created on every error caught.
+### MediatR Pipeline & CQRS
+All incoming write commands and read queries pass through a deterministic MediatR pipeline chain:
 
-### Pagination and filtering
-All pagination and filtering are done using base classes: `BaseSearchModelPagedQuery` and `BaseSearchModelPagedResponse` and search models, such as `BookSearchModel`. They contain key properties, which interact with repositories and handlers.
+$$\text{Request} \longrightarrow \text{LoggingBehavior} \longrightarrow \text{ValidationBehavior} \longrightarrow \text{TransactionBehavior} \longrightarrow \text{Handler}$$
+
+- **Logging**: `LoggingBehavior` logs execution context and timing for all incoming MediatR requests.
+- **Automated Validation**: `ValidationBehavior` executes FluentValidation rules before requests reach handlers or open database connections.
+- **Domain Validations**: Services such as `IIsbnService`, `IAuthorService`, and `IUserService` perform async availability checks (e.g., verifying ISBN uniqueness, author existence, or email/phone availability) inside command validators.
+
+### Exception Handling via API Filters
+Instead of global middleware, error handling is delegated to ASP.NET Core API Filters (`UnhandledExceptionFilter`, `NotFoundExceptionFilter`, `ValidationExceptionFilter`, `BookAlreadyBorrowedExceptionFilter`). 
+- Domain exceptions are automatically mapped to standard HTTP status codes:
+  - `EntityNotFoundException` $\rightarrow$ **404 Not Found**
+  - `ValidationException` $\rightarrow$ **400 Bad Request**
+  - `BookAlreadyBorrowedException` $\rightarrow$ **409 Conflict**
+  - Unhandled exceptions $\rightarrow$ **500 Internal Server Error**
+- Every intercepted error generates a structured log trace.
+
+---
+
+## 5. Concurrency, Lending Logic & Transactions
+
+### Lending Rules & Race Condition Mitigation
+The loaning system enforces that a book cannot be actively borrowed by multiple users concurrently. To guarantee data integrity under high concurrent load:
+
+1. **Transaction Pipeline Scoping**: Commands marked with the `ITransactionalCommand` interface are automatically wrapped in a database transaction by `TransactionBehavior`.
+2. **Database Level Guarantee**: `LoanConfiguration` defines a partial unique index on active loans (`UX_Loan_BookId_Active`) filtered by `ReturnedAt IS NULL`:
+   ```csharp
+   builder.HasIndex(x => x.BookId)
+          .IsUnique()
+          .HasDatabaseName("UX_Loan_BookId_Active")
+          .HasFilter("\"ReturnedAt\" IS NULL");
+   ```
+3. **Graceful Exception Translation**: If two concurrent requests pass the initial availability check, PostgreSQL rejects the second insertion via index violation. `NpgsqlDbExceptionInterpreter` intercepts the Npgsql exception and translates it into a domain-level `BookAlreadyBorrowedException`, triggering an immediate HTTP 409 response.
+
+---
+
+## 6. Pagination, Search & Quality Assurance
+
+### Standardized Search & Paging
+Read operations utilize standardized pagination and filtering interfaces (`BaseSearchModelPagedQuery` and `BaseSearchModelPagedResponse<T>`). Repositories dynamically apply `Where` predicate filtering, sorting dictionary lookups, and `Skip`/`Take` windowing.
+
+### Automated Testing Strategy
+The codebase includes comprehensive unit test coverage built with **NUnit 3**, **Moq**, and **FluentValidation.TestHelper**:
+- **Validator Tests**: Verify all required fields, field lengths, regex rules, and async service lookups.
+- **Service & Handler Tests**: Validate entity state mutations, repository persistence calls, and mapping to response DTOs.
+- **Pipeline & Behavior Tests**: Ensure transactions roll back correctly on error and logging behaviors capture execution telemetry.

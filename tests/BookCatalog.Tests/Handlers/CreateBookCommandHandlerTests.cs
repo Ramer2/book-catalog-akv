@@ -46,8 +46,8 @@ public class CreateBookCommandHandlerTests
                 "Inserted Book.Isbn must mirror CreateBookCommand.Isbn");
             Assert.That(captured.Title, Is.EqualTo(command.Title),
                 "Inserted Book.Title must mirror CreateBookCommand.Title");
-            Assert.That(captured.Author, Is.EqualTo(command.Author),
-                "Inserted Book.Author must mirror CreateBookCommand.Author");
+            Assert.That(captured.AuthorId, Is.EqualTo(command.AuthorId),
+                "Inserted Book.AuthorId must mirror CreateBookCommand.AuthorId");
             Assert.That(captured.NumberOfPages, Is.EqualTo(command.NumberOfPages),
                 "Inserted Book.NumberOfPages must mirror CreateBookCommand.NumberOfPages");
             Assert.That(captured.PublishDate, Is.EqualTo(command.PublishDate),
@@ -60,8 +60,6 @@ public class CreateBookCommandHandlerTests
                 "BookResponse.Isbn must reflect the persisted book's ISBN");
             Assert.That(response.Title, Is.EqualTo(command.Title),
                 "BookResponse.Title must reflect the persisted book's title");
-            Assert.That(response.Author, Is.EqualTo(command.Author),
-                "BookResponse.Author must reflect the persisted book's author");
             Assert.That(response.NumberOfPages, Is.EqualTo(command.NumberOfPages),
                 "BookResponse.NumberOfPages must reflect the persisted book's number of pages");
             Assert.That(response.PublishDate, Is.EqualTo(command.PublishDate),

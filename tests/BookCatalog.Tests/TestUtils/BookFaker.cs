@@ -3,15 +3,11 @@ using BookCatalog.Domain.Models;
 
 namespace BookCatalog.Tests.TestUtils;
 
-/// <summary>
-/// Deterministic sample data. Keep values distinct so a failing assertion
-/// clearly shows which field diverged.
-/// </summary>
 internal static class BookFaker
 {
     public const string ValidIsbn = "1234567890";
     public const string ValidTitle = "The Pragmatic Programmer";
-    public const string ValidAuthor = "Andy Hunt";
+    public static readonly Guid ValidAuthorId = Guid.Parse("11111111-1111-1111-1111-111111111111");
     public const int ValidNumberOfPages = 352;
 
     public static readonly DateTime ValidPublishDate =
@@ -21,25 +17,30 @@ internal static class BookFaker
         Guid? id = null,
         string? isbn = null,
         string? title = null,
-        string? author = null,
+        Guid? authorId = null,
+        Author? author = null,
         int? numberOfPages = null,
         DateTime? publishDate = null)
     {
-        return new Book(
+        var resolvedAuthorId = authorId ?? author?.Id ?? ValidAuthorId;
+        var book = new Book(
             isbn ?? ValidIsbn,
             title ?? ValidTitle,
-            author ?? ValidAuthor,
+            resolvedAuthorId,
             numberOfPages ?? ValidNumberOfPages,
             publishDate ?? ValidPublishDate)
         {
-            Id = id ?? Guid.NewGuid()
+            Id = id ?? Guid.NewGuid(),
+            Author = author ?? AuthorFaker.Author(id: resolvedAuthorId)
         };
+
+        return book;
     }
 
     public static CreateBookCommand CreateCommand(
         string? isbn = null,
         string? title = null,
-        string? author = null,
+        Guid? authorId = null,
         int? numberOfPages = null,
         DateTime? publishDate = null)
     {
@@ -47,7 +48,7 @@ internal static class BookFaker
         {
             Isbn = isbn ?? ValidIsbn,
             Title = title ?? ValidTitle,
-            Author = author ?? ValidAuthor,
+            AuthorId = authorId ?? ValidAuthorId,
             NumberOfPages = numberOfPages ?? ValidNumberOfPages,
             PublishDate = publishDate ?? ValidPublishDate
         };
@@ -57,7 +58,7 @@ internal static class BookFaker
         Guid? id = null,
         string? isbn = null,
         string? title = null,
-        string? author = null,
+        Guid? authorId = null,
         int? numberOfPages = null,
         DateTime? publishDate = null)
     {
@@ -66,7 +67,7 @@ internal static class BookFaker
             Id = id ?? Guid.NewGuid(),
             Isbn = isbn ?? ValidIsbn,
             Title = title ?? ValidTitle,
-            Author = author ?? ValidAuthor,
+            AuthorId = authorId ?? ValidAuthorId,
             NumberOfPages = numberOfPages ?? ValidNumberOfPages,
             PublishDate = publishDate ?? ValidPublishDate
         };

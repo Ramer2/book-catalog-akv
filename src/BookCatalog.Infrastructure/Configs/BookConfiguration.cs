@@ -1,4 +1,4 @@
-﻿using BookCatalog.Domain.Models;
+using BookCatalog.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -21,13 +21,17 @@ public class BookConfiguration : IEntityTypeConfiguration<Book>
             .IsRequired();
 
         builder
-            .Property(x => x.Author)
-            .HasMaxLength(100)
-            .IsRequired();
-
-        builder
             .Property(x => x.Isbn)
             .HasMaxLength(13)
             .IsRequired();
+
+        builder
+            .HasOne(x => x.Author)
+            .WithMany()
+            .HasForeignKey(x => x.AuthorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder
+            .HasIndex(x => x.AuthorId);
     }
 }

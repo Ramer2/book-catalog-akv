@@ -41,7 +41,7 @@ public class GetBookByIdQueryHandlerTests
             Assert.That(response.Id, Is.EqualTo(existing.Id), "BookResponse.Id must match the fetched book");
             Assert.That(response.Isbn, Is.EqualTo(existing.Isbn), "BookResponse.Isbn must match the fetched book");
             Assert.That(response.Title, Is.EqualTo(existing.Title), "BookResponse.Title must match the fetched book");
-            Assert.That(response.Author, Is.EqualTo(existing.Author), "BookResponse.Author must match the fetched book");
+            Assert.That(response.Author.Id, Is.EqualTo(existing.Author!.Id), "BookResponse.Author.Id must match the fetched book");
             Assert.That(response.NumberOfPages, Is.EqualTo(existing.NumberOfPages),
                 "BookResponse.NumberOfPages must match the fetched book");
             Assert.That(response.PublishDate, Is.EqualTo(existing.PublishDate),

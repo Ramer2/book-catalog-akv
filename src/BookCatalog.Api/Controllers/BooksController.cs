@@ -17,7 +17,8 @@ public class BooksController : ControllerBase
     }
 
     [HttpGet("")]
-    public async Task<IActionResult> GetAllBooks([FromQuery] GetAllBooksQuery query, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAllBooks([FromQuery] GetAllBooksQuery query,
+        CancellationToken cancellationToken)
     {
         return Ok(await _mediator.Send(query, cancellationToken));
     }
@@ -35,13 +36,15 @@ public class BooksController : ControllerBase
     }
 
     [HttpPost("")]
-    public async Task<IActionResult> CreateBook([FromBody] CreateBookCommand command, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateBook([FromBody] CreateBookCommand command,
+        CancellationToken cancellationToken)
     {
         return Ok(await _mediator.Send(command, cancellationToken));
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> UpdateBookById([FromRoute] Guid id, [FromBody] UpdateBookByIdCommand command, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateBookById([FromRoute] Guid id, [FromBody] UpdateBookByIdCommand command,
+        CancellationToken cancellationToken)
     {
         command.Id = id;
         return Ok(await _mediator.Send(command, cancellationToken));
