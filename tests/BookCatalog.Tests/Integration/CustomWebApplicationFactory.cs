@@ -40,4 +40,16 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         var dbContext = scope.ServiceProvider.GetRequiredService<BookCatalogDbContext>();
         await dbContext.Database.MigrateAsync();
     }
+
+    public async Task ResetDatabaseAsync()
+    {
+        using var scope = Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<BookCatalogDbContext>();
+
+        dbContext.Loans.RemoveRange(dbContext.Loans);
+        dbContext.Books.RemoveRange(dbContext.Books);
+        dbContext.Authors.RemoveRange(dbContext.Authors);
+        dbContext.Users.RemoveRange(dbContext.Users);
+        await dbContext.SaveChangesAsync();
+    }
 }
