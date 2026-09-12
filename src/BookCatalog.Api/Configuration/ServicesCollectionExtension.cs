@@ -17,6 +17,8 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
+using Microsoft.Extensions.Options;
+
 namespace BookCatalog.Api.Configuration;
 
 public static class ServicesCollectionExtension
@@ -26,7 +28,8 @@ public static class ServicesCollectionExtension
         IConfiguration configuration)
     {
         AddExceptionFilters(services);
-        AddEfCore(services, configuration);
+        AddDatabaseConfigurationAndEfCore(services, configuration);
+        AddSolutionHealthChecks(services);
         AddRepositories(services);
 
         AddServices(services);
@@ -59,10 +62,30 @@ public static class ServicesCollectionExtension
         });
     }
 
-    public static void AddEfCore(IServiceCollection services, IConfiguration configuration)
+    public static void AddDatabaseConfigurationAndEfCore(IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DbConnection");
-        services.AddDbContext<BookCatalogDbContext>(options => { options.UseNpgsql(connectionString); });
+        services.AddOptions<DatabaseOptions>()
+            .Configure<IConfiguration>((options, config) =>
+            {
+                var connStr = config.GetConnectionString("DbConnection") ?? config["DbConnection"];
+                options.ConnectionString = connStr ?? string.Empty;
+            })
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddDbContext<BookCatalogDbContext>((sp, options) =>
+        {
+            var dbOptions = sp.GetRequiredService<IOptions<DatabaseOptions>>().Value;
+            options.UseNpgsql(dbOptions.ConnectionString);
+        });
+    }
+
+    public static void AddSolutionHealthChecks(IServiceCollection services)
+    {
+        services.AddHealthChecks()
+            .AddDbContextCheck<BookCatalogDbContext>(
+                name: "database",
+                tags: new[] { "ready" });
     }
 
     public static void AddMediatR(IServiceCollection services, IConfiguration configuration)

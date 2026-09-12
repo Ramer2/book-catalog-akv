@@ -1,3 +1,4 @@
+using BookCatalog.Api.Configuration;
 using BookCatalog.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -19,6 +20,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         builder.ConfigureServices(services =>
         {
+            services.Configure<DatabaseOptions>(options =>
+            {
+                options.ConnectionString = _connectionString;
+            });
             var descriptor = services.SingleOrDefault(
                 d => d.ServiceType == typeof(DbContextOptions<BookCatalogDbContext>));
 
