@@ -15,40 +15,63 @@ using BookCatalog.Infrastructure.Repositories;
 using BookCatalog.Infrastructure.Transactions;
 using FluentValidation;
 using MediatR;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
-
 using Microsoft.Extensions.Options;
+using Serilog;
 
 namespace BookCatalog.Api.Configuration;
 
 public static class ServicesCollectionExtension
 {
+    public static WebApplicationBuilder AddSerilogLogging(this WebApplicationBuilder builder)
+    {
+        builder.Host.UseSerilog((context, services, configuration) =>
+        {
+            configuration
+                .ReadFrom.Configuration(context.Configuration)
+                .ReadFrom.Services(services)
+                .Enrich.FromLogContext();
+        });
+
+        return builder;
+    }
+
     public static IServiceCollection AddSolutionInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        AddShutdownTimeout(services);
+        AddSwaggerDocumentation(services);
         AddExceptionFilters(services);
         AddDatabaseConfigurationAndEfCore(services, configuration);
         AddSolutionHealthChecks(services);
         AddRepositories(services);
-
         AddServices(services);
-
         AddMediatR(services, configuration);
 
         // Pipeline behaviors run in registration order (first registered = outermost).
-        // The desired chain is: Logging -> Validation -> Transaction -> Handler
-        // so that validation short-circuits BEFORE we open a database transaction,
-        // and logging captures the whole thing (including rollbacks).
+        // Chain: Logging -> Validation -> Transaction -> Handler
         AddLogging(services);
-
         AddValidators(services);
-
         AddTransactions(services);
-
         AddAutomapperProfiles(services);
 
         return services;
+    }
+
+    public static void AddShutdownTimeout(this IServiceCollection services, int timeoutSeconds = 30)
+    {
+        services.Configure<HostOptions>(options =>
+        {
+            options.ShutdownTimeout = TimeSpan.FromSeconds(timeoutSeconds);
+        });
+    }
+
+    public static void AddSwaggerDocumentation(this IServiceCollection services)
+    {
+        services.AddEndpointsApiExplorer();
+        services.AddSwaggerGen();
     }
 
     public static void AddExceptionFilters(IServiceCollection services)
@@ -142,5 +165,37 @@ public static class ServicesCollectionExtension
         services.AddScoped<IIsbnService, IsbnService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<ILoanService, LoanService>();
+    }
+
+    public static void UseGracefulShutdownLogging(this WebApplication app)
+    {
+        var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+        lifetime.ApplicationStarted.Register(() => Log.Information("Application started successfully."));
+        lifetime.ApplicationStopping.Register(() => Log.Information("Application is stopping: draining in-flight requests..."));
+        lifetime.ApplicationStopped.Register(() => Log.Information("Application stopped cleanly."));
+    }
+
+    public static void UseSwaggerDocumentation(this WebApplication app)
+    {
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+    }
+
+    public static void MapSolutionHealthChecks(this WebApplication app)
+    {
+        app.MapHealthChecks("/health/live", new HealthCheckOptions
+        {
+            Predicate = _ => false,
+            ResponseWriter = HealthCheckResponseWriter.WriteResponseAsync
+        });
+
+        app.MapHealthChecks("/health/ready", new HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains("ready"),
+            ResponseWriter = HealthCheckResponseWriter.WriteResponseAsync
+        });
     }
 }
