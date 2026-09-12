@@ -70,6 +70,12 @@ The API exposes structured health check endpoints via ASP.NET Core Health Checks
 - **Readiness (`GET /health/ready`)**: Dependency probe utilizing `AddDbContextCheck<BookCatalogDbContext>()` to execute active connectivity checks against the PostgreSQL database.
 - **Formatted Responses**: Formatted via `HealthCheckResponseWriter` into machine-readable JSON containing total execution time, overall status (`Healthy`, `Degraded`, `Unhealthy`), and per-component probe breakdowns.
 
+### Graceful Shutdown & Request Draining
+The server manages termination lifecycle signals (e.g., SIGTERM, SIGINT) to avoid abrupt request drops:
+- **Shutdown Timeout**: Configured `HostOptions.ShutdownTimeout` to 30 seconds, giving active in-flight HTTP requests and database transactions adequate time to drain and complete before forceful termination.
+- **Lifecycle Telemetry**: Hooked `IHostApplicationLifetime` events (`ApplicationStarted`, `ApplicationStopping`, `ApplicationStopped`) to log shutdown milestones and clean resource teardown.
+- **Cancellation Propagation**: Controllers propagate `CancellationToken` throughout MediatR pipelines and EF Core database commands, allowing aborts to free database connections immediately when clients disconnect.
+
 ### Exception Handling via API Filters
 Instead of global middleware, error handling is delegated to ASP.NET Core API Filters (`UnhandledExceptionFilter`, `NotFoundExceptionFilter`, `ValidationExceptionFilter`, `BookAlreadyBorrowedExceptionFilter`). 
 - Domain exceptions are automatically mapped to standard HTTP status codes:
@@ -123,4 +129,4 @@ To ensure strict test independence, repeatability, and zero leftover garbage sta
 - **Pre-Test State Reset**: Every integration test inherits from `IntegrationTestBase`. NUnit's `[SetUp]` hook invokes `Factory.ResetDatabaseAsync()` before executing each individual test method.
 - **Cascading Table Record Wipe**: `ResetDatabaseAsync()` uses EF Core to clear all entities (`Loans`, `Books`, `Authors`, `Users`) in order of foreign key constraints, wiping table rows to guarantee a completely clean slate prior to test execution.
 - **Teardown & Cleanup**: HTTP clients are disposed after each test (`[TearDown]`), and the PostgreSQL container is automatically stopped and destroyed upon test suite completion.
-- **E2E Endpoint & Health Check Coverage**: Fully tests end-to-end controller flows across all entities (Authors, Books, Users, Loan operations) and health check probes (`/health/live` and `/health/ready`), verifying success flows, search/filtering, validation failures, and HTTP 409 conflict handling.
+- **E2E Endpoint, Health Check & Shutdown Coverage**: Fully tests end-to-end controller flows across all entities (Authors, Books, Users, Loan operations), health check probes (`/health/live` and `/health/ready`), and graceful shutdown behavior (`GracefulShutdownTests`), verifying timeout configuration, lifecycle availability, and request cancellation.

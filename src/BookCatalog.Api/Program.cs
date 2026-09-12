@@ -12,12 +12,22 @@ builder.Host.UseSerilog((context, services, configuration) =>
         .Enrich.FromLogContext();
 });
 
+builder.Services.Configure<HostOptions>(options =>
+{
+    options.ShutdownTimeout = TimeSpan.FromSeconds(30);
+});
+
 builder.Services.AddSolutionInfrastructure(builder.Configuration);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+lifetime.ApplicationStarted.Register(() => Log.Information("Application started successfully."));
+lifetime.ApplicationStopping.Register(() => Log.Information("Application is stopping: draining in-flight requests..."));
+lifetime.ApplicationStopped.Register(() => Log.Information("Application stopped cleanly."));
 
 app.UseSerilogRequestLogging();
 
