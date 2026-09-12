@@ -40,7 +40,7 @@ The codebase is organized into four distinct projects, enforcing strict unidirec
 
 ### Environment & Database Setup
 - **PostgreSQL Containerization**: The runtime environment is fully dockerized using `compose.yaml`, pairing the ASP.NET API service with a PostgreSQL database instance (`books.db`).
-- **Configuration Management**: Non-sensitive defaults reside in `appsettings.Development.json`, while production database credentials and MediatR configuration are injected via environment variables and a git-ignored `appsettings.json`.
+- **Configuration Management & Fail-Fast Validation**: Non-sensitive defaults reside in `appsettings.Development.json`, while production credentials reside in `appsettings.json` or environment variables. Database settings are bound to `DatabaseOptions` and validated on application boot via `.ValidateDataAnnotations()` and `.ValidateOnStart()`, ensuring the server fails fast at startup with explicit diagnostics if required connection parameters are missing.
 
 ### EF Core Migration Strategy
 - During early prototyping, SQLite in-memory storage was briefly evaluated. Because SQLite mapped `DateTime` fields to text types-which risked carrying non-idiomatic column mappings over to PostgreSQL-the migration history was cleanly reset and re-scaffolded directly against Npgsql/PostgreSQL.
@@ -58,6 +58,17 @@ $$\text{Request} \longrightarrow \text{LoggingBehavior} \longrightarrow \text{Va
 - **Logging**: `LoggingBehavior` logs execution context and timing for all incoming MediatR requests.
 - **Automated Validation**: `ValidationBehavior` executes FluentValidation rules before requests reach handlers or open database connections.
 - **Domain Validations**: Services such as `IIsbnService`, `IAuthorService`, and `IUserService` perform async availability checks (e.g., verifying ISBN uniqueness, author existence, or email/phone availability) inside command validators.
+
+### Structured Logging & Traceability (Serilog)
+Application logging is powered by **Serilog** (`Serilog.AspNetCore`, `Serilog.Sinks.File`), configured with console and rolling daily file sinks (`logs/bookcatalog-.log`).
+- **Request Telemetry**: `app.UseSerilogRequestLogging()` captures HTTP method, route, status code, and execution duration for every incoming request.
+- **Context Enrichment**: All log entries are enriched with `FromLogContext()`, attaching unique W3C `TraceId` identifiers to trace single requests across all emitted MediatR pipeline, controller, and EF Core log events.
+
+### Health Checks (Liveness & Readiness)
+The API exposes structured health check endpoints via ASP.NET Core Health Checks:
+- **Liveness (`GET /health/live`)**: Lightweight probe verifying that the Web Host process is running and accepting HTTP connections.
+- **Readiness (`GET /health/ready`)**: Dependency probe utilizing `AddDbContextCheck<BookCatalogDbContext>()` to execute active connectivity checks against the PostgreSQL database.
+- **Formatted Responses**: Formatted via `HealthCheckResponseWriter` into machine-readable JSON containing total execution time, overall status (`Healthy`, `Degraded`, `Unhealthy`), and per-component probe breakdowns.
 
 ### Exception Handling via API Filters
 Instead of global middleware, error handling is delegated to ASP.NET Core API Filters (`UnhandledExceptionFilter`, `NotFoundExceptionFilter`, `ValidationExceptionFilter`, `BookAlreadyBorrowedExceptionFilter`). 
@@ -98,6 +109,7 @@ The test suite in `BookCatalog.Tests` provides comprehensive verification across
 #### 1. Unit Testing Layer
 Focuses on fast, isolated verification of business logic and validation rules:
 - **Validator Tests**: Built with **FluentValidation.TestHelper** to verify field constraints, lengths, formats (e.g., ISBN regex), and mock async lookups (e.g., `IIsbnService`, `IAuthorService`).
+- **Configuration Validation Tests**: Built with `Microsoft.Extensions.Options` to verify `DatabaseOptionsValidationTests`, ensuring missing/empty connection strings trigger `OptionsValidationException` while valid configurations pass.
 - **Service & Handler Tests**: Built with **Moq** to isolate CQRS handlers and application services, verifying domain state transitions, exception throwing, and DTO mappings via AutoMapper.
 - **Pipeline & Behavior Tests**: Validate cross-cutting MediatR pipeline behaviors (`ValidationBehavior`, `TransactionBehavior`), ensuring atomic database rollbacks on failures.
 
@@ -111,4 +123,4 @@ To ensure strict test independence, repeatability, and zero leftover garbage sta
 - **Pre-Test State Reset**: Every integration test inherits from `IntegrationTestBase`. NUnit's `[SetUp]` hook invokes `Factory.ResetDatabaseAsync()` before executing each individual test method.
 - **Cascading Table Record Wipe**: `ResetDatabaseAsync()` uses EF Core to clear all entities (`Loans`, `Books`, `Authors`, `Users`) in order of foreign key constraints, wiping table rows to guarantee a completely clean slate prior to test execution.
 - **Teardown & Cleanup**: HTTP clients are disposed after each test (`[TearDown]`), and the PostgreSQL container is automatically stopped and destroyed upon test suite completion.
-- **E2E Endpoint Coverage**: Fully tests end-to-end controller flows across all entities (Authors, Books, Users, and Loan borrowing/returning operations), verifying success flows, search/filtering, validation failures, and HTTP 409 conflict handling.
+- **E2E Endpoint & Health Check Coverage**: Fully tests end-to-end controller flows across all entities (Authors, Books, Users, Loan operations) and health check probes (`/health/live` and `/health/ready`), verifying success flows, search/filtering, validation failures, and HTTP 409 conflict handling.
