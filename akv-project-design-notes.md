@@ -92,8 +92,23 @@ The loaning system enforces that a book cannot be actively borrowed by multiple 
 ### Standardized Search & Paging
 Read operations utilize standardized pagination and filtering interfaces (`BaseSearchModelPagedQuery` and `BaseSearchModelPagedResponse<T>`). Repositories dynamically apply `Where` predicate filtering, sorting dictionary lookups, and `Skip`/`Take` windowing.
 
-### Automated Testing Strategy
-The codebase includes comprehensive unit test coverage built with **NUnit 3**, **Moq**, and **FluentValidation.TestHelper**:
-- **Validator Tests**: Verify all required fields, field lengths, regex rules, and async service lookups.
-- **Service & Handler Tests**: Validate entity state mutations, repository persistence calls, and mapping to response DTOs.
-- **Pipeline & Behavior Tests**: Ensure transactions roll back correctly on error and logging behaviors capture execution telemetry.
+### Automated Testing & Quality Assurance Strategy
+The test suite in `BookCatalog.Tests` provides comprehensive verification across both unit and integration levels using **NUnit 3**:
+
+#### 1. Unit Testing Layer
+Focuses on fast, isolated verification of business logic and validation rules:
+- **Validator Tests**: Built with **FluentValidation.TestHelper** to verify field constraints, lengths, formats (e.g., ISBN regex), and mock async lookups (e.g., `IIsbnService`, `IAuthorService`).
+- **Service & Handler Tests**: Built with **Moq** to isolate CQRS handlers and application services, verifying domain state transitions, exception throwing, and DTO mappings via AutoMapper.
+- **Pipeline & Behavior Tests**: Validate cross-cutting MediatR pipeline behaviors (`ValidationBehavior`, `TransactionBehavior`), ensuring atomic database rollbacks on failures.
+
+#### 2. Integration Testing & Containerized Environment
+Exposes the entire ASP.NET Core HTTP pipeline to real REST requests against a live PostgreSQL database:
+- **CustomWebApplicationFactory**: Extends `WebApplicationFactory<Program>` (`Microsoft.AspNetCore.Mvc.Testing`) to substitute the production database configuration with a test-specific connection string.
+- **Testcontainers for .NET (`Testcontainers.PostgreSql`)**: Automatically provisions an ephemeral, production-identical PostgreSQL container in Docker. Managed globally via `IntegrationTestAssemblySetup` (`[SetUpFixture]`), starting the container exactly once per test suite execution to minimize test run overhead.
+
+#### 3. Test Isolation & Garbage Cleanup Strategy
+To ensure strict test independence, repeatability, and zero leftover garbage state:
+- **Pre-Test State Reset**: Every integration test inherits from `IntegrationTestBase`. NUnit's `[SetUp]` hook invokes `Factory.ResetDatabaseAsync()` before executing each individual test method.
+- **Cascading Table Record Wipe**: `ResetDatabaseAsync()` uses EF Core to clear all entities (`Loans`, `Books`, `Authors`, `Users`) in order of foreign key constraints, wiping table rows to guarantee a completely clean slate prior to test execution.
+- **Teardown & Cleanup**: HTTP clients are disposed after each test (`[TearDown]`), and the PostgreSQL container is automatically stopped and destroyed upon test suite completion.
+- **E2E Endpoint Coverage**: Fully tests end-to-end controller flows across all entities (Authors, Books, Users, and Loan borrowing/returning operations), verifying success flows, search/filtering, validation failures, and HTTP 409 conflict handling.
