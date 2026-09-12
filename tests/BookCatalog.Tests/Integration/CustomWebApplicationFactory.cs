@@ -34,7 +34,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.AddDbContext<BookCatalogDbContext>(options =>
             {
-                options.UseNpgsql(_connectionString);
+                options.UseNpgsql(_connectionString, npgsqlOptions =>
+                {
+                    npgsqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 3,
+                        maxRetryDelay: TimeSpan.FromSeconds(5),
+                        errorCodesToAdd: null);
+                });
             });
         });
     }
