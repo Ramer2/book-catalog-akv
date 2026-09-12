@@ -1,4 +1,5 @@
-﻿using BookCatalog.Application.Interfaces.Transactions;
+using BookCatalog.Application.Interfaces.Transactions;
+using Microsoft.EntityFrameworkCore;
 
 namespace BookCatalog.Infrastructure.Transactions;
 
@@ -13,21 +14,26 @@ public class TransactionProvider : ITransactionProvider
 
     public async Task<T> ExecuteAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken = default)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        var strategy = _context.Database.CreateExecutionStrategy();
 
-        try
+        return await strategy.ExecuteAsync(async () =>
         {
-            var result = await action();
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
-            await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            try
+            {
+                var result = await action();
 
-            return result;
-        }
-        catch
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                return result;
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
     }
 }
